@@ -1,0 +1,14 @@
+declare module 'markdown-it-sub';
+declare module 'markdown-it-sup';
+declare module 'markdown-it-abbr';
+declare module 'markdown-it-mark';
+declare module 'markdown-it-ins';
+declare module 'markdown-it-deflist';
+declare module 'markdown-it-container';
+declare module '@components/*';
+declare module '@layouts/*';
+declare module '@marked/*';
+declare module '@pages/*';
+declare module '@styles/*';
+declare module '@types/*';
+declare module '@utils/*';
