@@ -9,6 +9,7 @@ import NewsAdmin from './pages/NewsAdmin';
 import PostEditorPage from './pages/PostEditorPage';
 import NewsPage from './pages/NewsPage';
 import NewsItemPage from './pages/NewsItemPage';
+import FeedbackPage from "./pages/FeedbackPage";
 
 const App: React.FC = () => {
   useEffect(() => {
@@ -38,6 +39,7 @@ const App: React.FC = () => {
         {/* Página principal */}
         <Route path="/" element={<HomePage />} />
         <Route path="/news" element={<NewsPage />} />
+        <Route path="news/:id/feedback" element={<FeedbackPage />} />
         <Route path="/news/:id" element={<NewsItemPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/admin" element={<AdminPanel />} />
