@@ -9,9 +9,22 @@ interface FormState {
   emailBody: string;
 }
 
+interface FormErrors {
+  title: string;
+  body: string;
+  subject: string;
+  emailBody: string;
+}
+
 const PostEditorPage: React.FC = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [form, setForm] = useState<FormState>({
+    title: '',
+    body: '',
+    subject: '',
+    emailBody: '',
+  });
+  const [errors, setErrors] = useState<FormErrors>({
     title: '',
     body: '',
     subject: '',
@@ -21,15 +34,61 @@ const PostEditorPage: React.FC = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
 
-  // Função para carregar os dados da publicação ao editar
+  const validateForm = () => {
+    const newErrors: FormErrors = {
+      title: '',
+      body: '',
+      subject: '',
+      emailBody: '',
+    };
+    let isValid = true;
+
+    // Validações comuns para edição e criação
+    if (!form.title.trim()) {
+      newErrors.title = 'Título é obrigatório';
+      isValid = false;
+    } else if (form.title.trim().length < 5) {
+      newErrors.title = 'Título deve ter pelo menos 5 caracteres';
+      isValid = false;
+    }
+
+    if (!form.body.trim()) {
+      newErrors.body = 'Corpo da publicação é obrigatório';
+      isValid = false;
+    } else if (form.body.trim().length < 20) {
+      newErrors.body = 'O conteúdo deve ter pelo menos 20 caracteres';
+      isValid = false;
+    }
+
+    // Validações específicas para nova publicação
+    if (!isEditing) {
+      if (!form.subject.trim()) {
+        newErrors.subject = 'Assunto do e-mail é obrigatório';
+        isValid = false;
+      } else if (form.subject.trim().length < 5) {
+        newErrors.subject = 'Assunto deve ter pelo menos 5 caracteres';
+        isValid = false;
+      }
+
+      if (!form.emailBody.trim()) {
+        newErrors.emailBody = 'Corpo do e-mail é obrigatório';
+        isValid = false;
+      } else if (form.emailBody.trim().length < 20) {
+        newErrors.emailBody = 'O e-mail deve ter pelo menos 20 caracteres';
+        isValid = false;
+      }
+    }
+
+    setErrors(newErrors);
+    return isValid;
+  };
+
   const loadPostData = useCallback(async () => {
     if (id) {
       setIsEditing(true);
       try {
         const response = await fetch(`${config.apiUrl}/news/${id}`);
-        if (!response.ok) {
-          throw new Error('Erro ao carregar publicação');
-        }
+        if (!response.ok) throw new Error('Erro ao carregar publicação');
         const data = await response.json();
         setForm({
           title: data.title || '',
@@ -47,9 +106,13 @@ const PostEditorPage: React.FC = () => {
     loadPostData();
   }, [loadPostData]);
 
-  // Lidar com o envio do formulário
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
+
+    if (!validateForm()) {
+      return;
+    }
+
     try {
       const endpoint = isEditing ? `/news/${id}` : '/news';
       const method = isEditing ? 'PATCH' : 'POST';
@@ -61,31 +124,19 @@ const PostEditorPage: React.FC = () => {
         body: JSON.stringify(form),
       });
 
-      if (!response.ok) {
-        throw new Error('Erro ao salvar publicação');
-      }
+      if (!response.ok) throw new Error('Erro ao salvar publicação');
 
       setDialogVisible(true);
-      setTimeout(() => {
-        navigate(-1); // Volta para a página anterior
-      }, 2000);
+      setTimeout(() => navigate(-1), 2000);
     } catch (error) {
       console.error('Erro ao salvar publicação:', error);
     }
   };
 
-  // Cancelar e voltar para a página anterior
-  const handleCancel = () => {
-    navigate(-1);
-  };
-
-  // Atualizar estado do formulário
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setForm((prevForm) => ({
-      ...prevForm,
-      [name]: value,
-    }));
+    setForm(prev => ({ ...prev, [name]: value }));
+    setErrors(prev => ({ ...prev, [name]: '' }));
   };
 
   return (
@@ -95,7 +146,9 @@ const PostEditorPage: React.FC = () => {
           {isEditing ? 'Editar conteúdo' : 'Publicar novo conteúdo'}
         </h1>
         <hr className="border-b-2 border-gray-400 mb-4 rounded" />
-        <form onSubmit={handleSubmit}>
+
+        <form onSubmit={handleSubmit} noValidate>
+          {/* Campo Título */}
           <div className="mb-4">
             <label htmlFor="title" className="block text-gray-600 font-medium mb-2">
               Título
@@ -107,9 +160,12 @@ const PostEditorPage: React.FC = () => {
               value={form.title}
               onChange={handleChange}
               placeholder="Digite o título"
-              className="w-full p-2 border rounded-md"
+              className={`w-full p-2 border rounded-md ${errors.title ? 'border-red-500' : ''}`}
             />
+            {errors.title && <p className="text-red-500 text-sm mt-1">{errors.title}</p>}
           </div>
+
+          {/* Campo Corpo da Publicação */}
           <div className="mb-6">
             <label htmlFor="body" className="block text-gray-600 font-medium mb-2">
               Corpo da publicação
@@ -121,11 +177,14 @@ const PostEditorPage: React.FC = () => {
               value={form.body}
               onChange={handleChange}
               placeholder="Escreva o conteúdo"
-              className="w-full p-2 border rounded-md"
+              className={`w-full p-2 border rounded-md ${errors.body ? 'border-red-500' : ''}`}
             />
+            {errors.body && <p className="text-red-500 text-sm mt-1">{errors.body}</p>}
           </div>
+
           {!isEditing && (
             <>
+              {/* Campo Assunto do E-mail */}
               <div className="mb-6">
                 <label htmlFor="subject" className="block text-gray-600 font-medium mb-2">
                   Assunto
@@ -137,9 +196,12 @@ const PostEditorPage: React.FC = () => {
                   value={form.subject}
                   onChange={handleChange}
                   placeholder="Digite o assunto do e-mail"
-                  className="w-full p-2 border rounded-md"
+                  className={`w-full p-2 border rounded-md ${errors.subject ? 'border-red-500' : ''}`}
                 />
+                {errors.subject && <p className="text-red-500 text-sm mt-1">{errors.subject}</p>}
               </div>
+
+              {/* Campo Corpo do E-mail */}
               <div className="mb-6">
                 <label htmlFor="emailBody" className="block text-gray-600 font-medium mb-2">
                   Corpo do e-mail
@@ -151,16 +213,20 @@ const PostEditorPage: React.FC = () => {
                   value={form.emailBody}
                   onChange={handleChange}
                   placeholder="Escreva o conteúdo do e-mail"
-                  className="w-full p-2 border rounded-md"
+                  className={`w-full p-2 border rounded-md ${errors.emailBody ? 'border-red-500' : ''}`}
                 />
+                {errors.emailBody && <p className="text-red-500 text-sm mt-1">{errors.emailBody}</p>}
               </div>
             </>
           )}
+
           <hr className="border-b-2 border-gray-400 mb-4 rounded" />
+
+          {/* Botões */}
           <div className="flex justify-end gap-4">
             <button
               type="button"
-              onClick={handleCancel}
+              onClick={() => navigate(-1)}
               className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300"
             >
               Cancelar
@@ -174,6 +240,8 @@ const PostEditorPage: React.FC = () => {
           </div>
         </form>
       </div>
+
+      {/* Modal de confirmação */}
       {dialogVisible && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
           <div className="bg-white rounded-lg p-4 text-center">
